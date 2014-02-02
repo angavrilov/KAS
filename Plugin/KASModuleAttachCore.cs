@@ -180,13 +180,34 @@ namespace KAS
             {
                 // Nothing to do (see OnVesselLoaded)
             }
-            GameEvents.onVesselGoOffRails.Add(new EventData<Vessel>.OnEvent(this.OnVesselGoOffRails));     
+
+            GameEvents.onVesselGoOnRails.Add(new EventData<Vessel>.OnEvent(this.OnVesselGoOnRails));
+            GameEvents.onVesselGoOffRails.Add(new EventData<Vessel>.OnEvent(this.OnVesselGoOffRails));
+        }
+
+        void OnVesselGoOnRails(Vessel vess)
+        {
+            if (vess != this.vessel)
+                return;
+
+            if (attachMode.StaticJoint && StaticAttach.connectedGameObject)
+                Destroy(StaticAttach.connectedGameObject);
         }
 
         void OnVesselGoOffRails(Vessel vess)
         {
-            if (vess != this.vessel) return;
-            if (attachMode.StaticJoint && !StaticAttach.fixedJoint)
+            if (FixedAttach.createJointOnUnpack &&
+                (vess == this.vessel || vess == FixedAttach.connectedPart.vessel))
+            {
+                if (!this.part.packed && !FixedAttach.connectedPart.packed)
+                {
+                    KAS_Shared.DebugWarning("OnUpdate(Core) Fixed attach set and both part unpacked, creating fixed joint...");
+                    AttachFixed(FixedAttach.connectedPart, FixedAttach.savedBreakForce);
+                    FixedAttach.createJointOnUnpack = false;
+                }
+            }
+
+            if (vess == this.vessel && attachMode.StaticJoint)
             {
                 KAS_Shared.DebugLog("OnVesselGoOffRails(Core) Re-attach static object");
                 AttachStatic();
@@ -201,23 +222,8 @@ namespace KAS
 
         void OnDestroy()
         {
+            GameEvents.onVesselGoOnRails.Remove(new EventData<Vessel>.OnEvent(this.OnVesselGoOnRails));
             GameEvents.onVesselGoOffRails.Remove(new EventData<Vessel>.OnEvent(this.OnVesselGoOffRails));
-        }
-
-        public override void OnUpdate()
-        {
-            base.OnUpdate();
-            if (!HighLogic.LoadedSceneIsFlight) return;
-
-            if (FixedAttach.createJointOnUnpack)
-            {
-                if (!this.part.packed && !FixedAttach.connectedPart.packed)
-                {
-                    KAS_Shared.DebugWarning("OnUpdate(Core) Fixed attach set and both part unpacked, creating fixed joint...");
-                    AttachFixed(FixedAttach.connectedPart, FixedAttach.savedBreakForce);
-                    FixedAttach.createJointOnUnpack = false;
-                }
-            }
         }
 
         public void MoveAbove(Vector3 position, Vector3 normal, float distance)
