@@ -180,21 +180,28 @@ namespace KAS
             {
                 // Nothing to do (see OnVesselLoaded)
             }
-
-            GameEvents.onVesselGoOnRails.Add(new EventData<Vessel>.OnEvent(this.OnVesselGoOnRails));
-            GameEvents.onVesselGoOffRails.Add(new EventData<Vessel>.OnEvent(this.OnVesselGoOffRails));
         }
 
-        void OnVesselGoOnRails(Vessel vess)
+        public virtual void OnPartPack()
         {
-            if (vess != this.vessel)
-                return;
-
             if (attachMode.StaticJoint && StaticAttach.connectedGameObject)
                 Destroy(StaticAttach.connectedGameObject);
         }
 
-        void OnVesselGoOffRails(Vessel vess)
+        private void SetCreateJointOnUnpack(bool newval)
+        {
+            if (FixedAttach.createJointOnUnpack != newval)
+            {
+                FixedAttach.createJointOnUnpack = newval;
+
+                if (newval)
+                    GameEvents.onVesselGoOffRails.Add(new EventData<Vessel>.OnEvent(this.OnVesselGoOffRails));
+                else
+                    GameEvents.onVesselGoOffRails.Remove(new EventData<Vessel>.OnEvent(this.OnVesselGoOffRails));
+            }
+        }
+
+        private void OnVesselGoOffRails(Vessel vess)
         {
             if (FixedAttach.createJointOnUnpack &&
                 (vess == this.vessel || vess == FixedAttach.connectedPart.vessel))
@@ -203,11 +210,14 @@ namespace KAS
                 {
                     KAS_Shared.DebugWarning("OnUpdate(Core) Fixed attach set and both part unpacked, creating fixed joint...");
                     AttachFixed(FixedAttach.connectedPart, FixedAttach.savedBreakForce);
-                    FixedAttach.createJointOnUnpack = false;
+                    SetCreateJointOnUnpack(false);
                 }
             }
+        }
 
-            if (vess == this.vessel && attachMode.StaticJoint)
+        public virtual void OnPartUnpack()
+        {
+            if (attachMode.StaticJoint)
             {
                 KAS_Shared.DebugLog("OnVesselGoOffRails(Core) Re-attach static object");
                 AttachStatic();
@@ -222,8 +232,10 @@ namespace KAS
 
         void OnDestroy()
         {
-            GameEvents.onVesselGoOnRails.Remove(new EventData<Vessel>.OnEvent(this.OnVesselGoOnRails));
-            GameEvents.onVesselGoOffRails.Remove(new EventData<Vessel>.OnEvent(this.OnVesselGoOffRails));
+            SetCreateJointOnUnpack(false);
+
+            if (StaticAttach.connectedGameObject)
+                Destroy(StaticAttach.connectedGameObject);
         }
 
         public void MoveAbove(Vector3 position, Vector3 normal, float distance)
@@ -253,7 +265,7 @@ namespace KAS
             }
             else
             {
-                FixedAttach.createJointOnUnpack = true;
+                SetCreateJointOnUnpack(true);
                 KAS_Shared.DebugWarning("AttachFixed(Core) Cannot create fixed joint as part(s) is packed, delaying to unpack...");
             }
         }
@@ -411,6 +423,7 @@ namespace KAS
             {
                 KAS_Shared.DebugLog("Detach(Base) Removing fixed joint on " + this.part.partInfo.title);
                 if (FixedAttach.fixedJoint) Destroy(FixedAttach.fixedJoint);
+                SetCreateJointOnUnpack(false);
                 FixedAttach.fixedJoint = null;
                 FixedAttach.connectedPart = null;
                 attachMode.FixedJoint = false;

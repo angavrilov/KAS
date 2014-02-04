@@ -96,15 +96,7 @@ namespace KAS
             KAS_Shared.createFXSound(this.part, fxSndAttachPart, attachPartSndPath, false);
             KAS_Shared.createFXSound(this.part, fxSndDetach, detachSndPath, false);
             KAS_Shared.createFXSound(this.part, fxSndAttachStatic, attachStaticSndPath, false);
-            GameEvents.onCrewBoardVessel.Add(new EventData<GameEvents.FromToAction<Part, Part>>.OnEvent(this.OnCrewBoardVessel));
-            GameEvents.onVesselChange.Add(new EventData<Vessel>.OnEvent(this.OnVesselChange));
             RefreshContextMenu();
-        }
-
-
-        void OnVesselChange(Vessel vesselChange)
-        {
-            if (KASAddonPointer.isRunning) KASAddonPointer.StopPointer();
         }
 
         void OnCrewBoardVessel(GameEvents.FromToAction<Part, Part> fromToAction)
@@ -118,12 +110,14 @@ namespace KAS
 
         void OnDestroy()
         {
-            GameEvents.onCrewBoardVessel.Remove(new EventData<GameEvents.FromToAction<Part, Part>>.OnEvent(this.OnCrewBoardVessel));
-            GameEvents.onVesselChange.Remove(new EventData<Vessel>.OnEvent(this.OnVesselChange));
+            if (grabbed)
+                GameEvents.onCrewBoardVessel.Remove(new EventData<GameEvents.FromToAction<Part, Part>>.OnEvent(this.OnCrewBoardVessel));
         }
 
-        public void OnPartUnpack()
+        public override void OnPartUnpack()
         {
+            base.OnPartUnpack();
+
             if (grabbed)
             {
                 if (!evaHolderPart)
@@ -138,6 +132,7 @@ namespace KAS
                         }
                         else
                         {
+                            GameEvents.onCrewBoardVessel.Remove(new EventData<GameEvents.FromToAction<Part, Part>>.OnEvent(this.OnCrewBoardVessel));
                             evaHolderVesselName = null;
                             evaHolderPart = null;
                             grabbed = false;
@@ -256,6 +251,8 @@ namespace KAS
                 kerbalEvaVessel.rootPart.mass += this.part.mass;
             }
 
+            GameEvents.onCrewBoardVessel.Add(new EventData<GameEvents.FromToAction<Part, Part>>.OnEvent(this.OnCrewBoardVessel));
+
             evaHolderVesselName = kerbalEvaVessel.vesselName;
             evaHolderPart = kerbalEvaVessel.rootPart;
             grabbed = true;
@@ -326,6 +323,8 @@ namespace KAS
                         grabbedWinchHead.PlugHead(grabbedWinchHead.grabbedPortModule, KASModuleWinch.PlugState.PlugDocked,fireSound:false);
                     }
                 }
+
+                GameEvents.onCrewBoardVessel.Remove(new EventData<GameEvents.FromToAction<Part, Part>>.OnEvent(this.OnCrewBoardVessel));
 
                 keepTriggers = null;
                 evaJoint = null;
