@@ -525,8 +525,8 @@ namespace KAS
 
             //v.rootPart.collider.isTrigger = true;
 
-            v.rootPart.FindModelTransform("model").localScale *= v.rootPart.rescaleFactor;
-
+            //seems redundant:
+            //v.rootPart.FindModelTransform("model").localScale *= v.rootPart.rescaleFactor;
 
             //v.landedAt = "somewhere";
                         
