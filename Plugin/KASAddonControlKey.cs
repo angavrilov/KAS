@@ -41,6 +41,10 @@ namespace KAS
 
         public void Update()
         {
+            // Ignore if an edit field is active
+            if (GUIUtility.keyboardControl != 0)
+                return;
+
             UpdateGrab();
             UpdateWinchMouseGrab();
             UpdateWinchKeyGrab();
